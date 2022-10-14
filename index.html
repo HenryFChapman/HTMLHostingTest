@@ -1,0 +1,109 @@
+<html>
+  <head>
+    <style>
+      body {
+        margin: 0;
+      }
+      .node {
+        stroke: #000;
+        stroke-width: 2px;
+        fill: #3a403d;
+        cursor: all-scroll;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script>
+      var width = window.innerWidth, height = window.innerHeight, radius = 20;
+
+      var colors = ["#ff0000", "#ffb400", "#fff800", "#02ff00", "#005fff", "#9a01ff"];
+
+      var position = [[.1, .1], [.9, .9]];
+      var positionJson = [];
+      position.forEach(function(d){
+        positionJson.push( { x: width * d[0], y: height * d[1] } );
+      });
+
+      var svg = d3.select("body").append("svg")
+          .attr("width", width)
+          .attr("height", height);
+
+      var defs = svg.append("defs");
+
+      var gradient = defs.append("linearGradient")
+          .attr("id", "linear-gradient");
+
+      colors.forEach(function(d, i){
+        gradient.append("stop")
+            .attr("offset", i / (colors.length - 1) * 100 + "%")
+            .attr("stop-color", colors[i]);
+      });
+
+      svg.append("rect")
+          .attr("class", "gradient-rectangle")
+          .attr("x", "0")
+          .attr("y", "0")
+          .attr("width", width)
+          .attr("height", height)
+          .style("fill", "url(#linear-gradient)");
+
+      var simulation = d3.forceSimulation()
+          .nodes(positionJson)
+          .force("center", d3.forceCenter().x(width * .5).y(height * .5))
+          .force("collide", d3.forceCollide().strength(1).radius(radius).iterations(1))
+          .force("forceX", d3.forceX().strength(.1).x(function(d){ return d.x }))
+          .force("forceY", d3.forceY().strength(.1).y(function(d){ return d.y }))
+          .on("tick", function(d){
+            node
+                .attr("cx", function(d){ return d.x; })
+                .attr("cy", function(d){ return d.y; })
+          });
+
+      var node = svg.append("g")
+          .selectAll("circle")
+          .data(positionJson)
+        .enter().append("circle")
+          .attr("class", function(d,i){ return "node node-" + i; })
+          .attr("r", radius)
+          .attr("cx", function(d){ return d.x; })
+          .attr("cy", function(d){ return d.y; })
+          .call(d3.drag()
+              .on("start", dragstarted)
+              .on("drag", dragged)
+              .on("end", dragended));
+
+      changeOrientation(position);
+
+      function dragstarted(d) {
+        simulation.alphaTarget(.03).restart();
+        d.fx = d.x;
+        d.fy = d.y;
+      }
+
+      function dragged(d) {
+        d.fx = d3.event.x;
+        d.fy = d3.event.y;
+        changeOrientation([[d3.selectAll(".node-0").attr("cx") / width, d3.selectAll(".node-0").attr("cy") / height], [d3.selectAll(".node-1").attr("cx") / width, d3.selectAll(".node-1").attr("cy") / height]]);
+      }
+
+      function dragended(d) {
+        simulation.alphaTarget(.03);
+        d.fx = null;
+        d.fy = null;
+
+        simulation
+            .force("forceX", d3.forceX().strength(.1).x(function(d){ return d.x }))
+            .force("forceY", d3.forceY().strength(.1).y(function(d){ return d.y }));
+      }
+
+      function changeOrientation(position){
+        gradient
+            .attr("x1", position[0][0] * 100 + "%")
+            .attr("y1", position[0][1] * 100 + "%")
+            .attr("x2", position[1][0] * 100 + "%")
+            .attr("y2", position[1][1] * 100 + "%");
+      }
+    </script>
+  </body>
+</html>
